@@ -21,13 +21,13 @@ const CasablancaMap: React.FC<CasablancaMapProps> = ({ onLocationSelect, selecte
   const marker = useRef<mapboxgl.Marker | null>(null);
   const [searchValue, setSearchValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mapboxToken, setMapboxToken] = useState('');
+  const [isMapInitialized, setIsMapInitialized] = useState(false);
 
-  useEffect(() => {
-    if (!mapContainer.current) return;
+  const initializeMap = (token: string) => {
+    if (!mapContainer.current || !token) return;
 
-    // Note: In production, you would set the actual Mapbox token
-    // For now, we'll use a placeholder - the user needs to add their token
-    mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN_HERE';
+    mapboxgl.accessToken = token;
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -69,11 +69,14 @@ const CasablancaMap: React.FC<CasablancaMapProps> = ({ onLocationSelect, selecte
       });
     });
 
-    // Cleanup
+    setIsMapInitialized(true);
+  };
+
+  useEffect(() => {
     return () => {
       map.current?.remove();
     };
-  }, [onLocationSelect]);
+  }, []);
 
   // Update marker when selectedLocation changes
   useEffect(() => {
@@ -167,19 +170,38 @@ const CasablancaMap: React.FC<CasablancaMapProps> = ({ onLocationSelect, selecte
       {/* Map Container */}
       <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
       
-      {/* Mapbox Token Notice */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 bg-white p-6 rounded-lg shadow-floating max-w-md text-center">
-        <div className="mb-4">
-          <MapPin size={48} className="mx-auto text-civic-primary" />
+      {/* Mapbox Token Input */}
+      {!isMapInitialized && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 bg-white p-6 rounded-lg shadow-floating max-w-md">
+          <div className="mb-4 text-center">
+            <MapPin size={48} className="mx-auto text-civic-primary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2 text-center">Configuration Mapbox</h3>
+          <p className="text-sm text-gray-600 mb-4 text-center">
+            Entrez votre token Mapbox pour utiliser la carte interactive.
+          </p>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Votre token Mapbox..."
+              value={mapboxToken}
+              onChange={(e) => setMapboxToken(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-civic-primary text-sm"
+            />
+            <Button 
+              onClick={() => initializeMap(mapboxToken)}
+              disabled={!mapboxToken.trim()}
+              className="w-full"
+              variant="civic"
+            >
+              Initialiser la carte
+            </Button>
+          </div>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded mt-4">
+            Obtenez votre token gratuit sur <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-civic-primary hover:underline">mapbox.com</a>
+          </div>
         </div>
-        <h3 className="text-lg font-semibold mb-2">Configuration requise</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Pour utiliser la carte interactive, vous devez ajouter votre token Mapbox.
-        </p>
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-          Obtenez votre token sur <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-civic-primary hover:underline">mapbox.com</a>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
