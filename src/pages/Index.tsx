@@ -16,6 +16,7 @@ interface MapLocation {
 
 interface ProblemReport {
   categoryId: string;
+  subCategoryId: string;
   description: string;
   location: MapLocation;
 }
