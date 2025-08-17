@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import CasablancaMap from '@/components/CasablancaMap';
 import ProblemReportModal from '@/components/ProblemReportModal';
 import ResultsDisplay from '@/components/ResultsDisplay';
+import LanguageSelector from '@/components/LanguageSelector';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, AlertCircle, Phone, Users, Clock } from 'lucide-react';
+import { MapPin, AlertCircle, Phone, Users, Clock, MessageSquare } from 'lucide-react';
 import heroImage from '@/assets/casablanca-hero.jpg';
 
 interface MapLocation {
@@ -19,7 +20,13 @@ interface ProblemReport {
   subCategoryId: string;
   description: string;
   location: MapLocation;
+  files?: File[];
+  phone: string;
+  email?: string;
+  language: 'arabic' | 'french';
 }
+
+type Language = 'ar' | 'fr' | 'darija';
 
 interface ResultsData {
   authority: {
@@ -43,6 +50,7 @@ const Index = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'map' | 'results'>('map');
   const [resultsData, setResultsData] = useState<ResultsData | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('fr');
 
   const handleLocationSelect = (location: MapLocation) => {
     setSelectedLocation(location);
@@ -127,8 +135,8 @@ Cordialement,
                 <MapPin className="text-civic-primary" size={24} />
               </div>
               <div>
-                <h1 className="text-white font-bold text-xl">CivicCasa</h1>
-                <p className="text-white/80 text-sm">Portail Citoyen de Casablanca</p>
+                <h1 className="text-white font-bold text-xl">Sawtna</h1>
+                <p className="text-white/80 text-sm" style={{ fontFamily: 'Arial, sans-serif' }}>صوتنا</p>
               </div>
             </div>
             
@@ -145,15 +153,26 @@ Cordialement,
         <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-120px)]">
           <div className="text-center text-white max-w-4xl mx-auto px-6">
             <h2 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              Signaler un problème
+              {selectedLanguage === 'fr' && "Parlez-nous de votre problème"}
+              {selectedLanguage === 'ar' && "أخبرونا عن مشكلتكم"}
+              {selectedLanguage === 'darija' && "ڭوليولنا علا مشكلتكم"}
               <br />
-              <span className="text-civic-secondary">dans votre quartier</span>
+              <span className="text-civic-secondary">
+                {selectedLanguage === 'fr' && "nous trouvons la solution"}
+                {selectedLanguage === 'ar' && "سنجد الحل"}
+                {selectedLanguage === 'darija' && "غانلقاو الحل"}
+              </span>
             </h2>
             <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              Identifiez facilement l'autorité responsable et envoyez une demande formelle
-              <br />
-              en quelques clics seulement
+              {selectedLanguage === 'fr' && "Identifiez facilement l'autorité responsable et envoyez une demande formelle en quelques clics seulement"}
+              {selectedLanguage === 'ar' && "حددوا بسهولة السلطة المسؤولة وأرسلوا طلباً رسمياً بنقرات قليلة فقط"}
+              {selectedLanguage === 'darija' && "حددو بسهولة السلطة المسؤولة وصيفطو طلب رسمي بشي كليكات غير"}
             </p>
+            
+            <LanguageSelector 
+              selectedLanguage={selectedLanguage} 
+              onLanguageChange={setSelectedLanguage} 
+            />
             
             {/* Stats */}
             <div className="flex flex-wrap justify-center gap-8 mb-12">
@@ -182,7 +201,9 @@ Cordialement,
               }}
             >
               <MapPin className="mr-2" size={20} />
-              Commencer le signalement
+              {selectedLanguage === 'fr' && "Commencer le signalement"}
+              {selectedLanguage === 'ar' && "بدء الإبلاغ"}
+              {selectedLanguage === 'darija' && "بدا الإبلاغ"}
             </Button>
           </div>
         </div>
@@ -227,6 +248,7 @@ Cordialement,
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         location={selectedLocation}
+        language={selectedLanguage}
         onSubmit={handleProblemSubmit}
       />
 
@@ -239,10 +261,12 @@ Cordialement,
                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                   <MapPin className="text-civic-primary" size={18} />
                 </div>
-                <span className="font-bold text-lg">CivicCasa</span>
+                <span className="font-bold text-lg">Sawtna</span>
               </div>
               <p className="text-white/80">
-                Plateforme citoyenne pour améliorer la qualité de vie à Casablanca
+                {selectedLanguage === 'fr' && "Plateforme citoyenne pour améliorer la qualité de vie à Casablanca"}
+                {selectedLanguage === 'ar' && "منصة مواطنة لتحسين جودة الحياة في الدار البيضاء"}
+                {selectedLanguage === 'darija' && "منصة مواطنة لتحسين جودة الحياة فالدار البيضاء"}
               </p>
             </div>
             
@@ -250,7 +274,7 @@ Cordialement,
               <h4 className="font-semibold mb-4">Contact</h4>
               <div className="space-y-2 text-white/80">
                 <p>📞 0522-XX-XX-XX</p>
-                <p>✉️ contact@civiccasa.ma</p>
+                <p>✉️ contact@sawtna.ma</p>
                 <p>📍 Casablanca, Maroc</p>
               </div>
             </div>
@@ -266,7 +290,7 @@ Cordialement,
           </div>
           
           <div className="border-t border-white/20 mt-8 pt-8 text-center text-white/60">
-            <p>&copy; 2024 CivicCasa. Tous droits réservés.</p>
+            <p>&copy; 2024 Sawtna. {selectedLanguage === 'fr' ? 'Tous droits réservés' : selectedLanguage === 'ar' ? 'جميع الحقوق محفوظة' : 'جميع الحقوق محفوظة'}.</p>
           </div>
         </div>
       </footer>

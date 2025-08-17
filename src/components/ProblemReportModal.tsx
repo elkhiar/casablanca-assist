@@ -5,6 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MapPin, 
   AlertCircle, 
@@ -48,7 +50,17 @@ interface ProblemReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   location: MapLocation | null;
-  onSubmit: (data: { categoryId: string; subCategoryId: string; description: string; location: MapLocation }) => void;
+  language: 'ar' | 'fr' | 'darija';
+  onSubmit: (data: { 
+    categoryId: string; 
+    subCategoryId: string; 
+    description: string; 
+    location: MapLocation;
+    files?: File[];
+    phone: string;
+    email?: string;
+    language: 'arabic' | 'french';
+  }) => void;
 }
 
 const mainCategories: MainCategory[] = [
@@ -188,16 +200,21 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
   isOpen,
   onClose,
   location,
+  language,
   onSubmit
 }) => {
-  const [currentStep, setCurrentStep] = useState<'main' | 'sub'>('main');
+  const [currentStep, setCurrentStep] = useState<'main' | 'sub' | 'details'>('main');
   const [selectedMainCategory, setSelectedMainCategory] = useState<string>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
   const [description, setDescription] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [documentLanguage, setDocumentLanguage] = useState<'arabic' | 'french'>('french');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!selectedMainCategory || !selectedSubCategory || !description.trim() || !location) {
+    if (!selectedMainCategory || !selectedSubCategory || !description.trim() || !location || !phone.trim()) {
       return;
     }
 
@@ -208,7 +225,11 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
         categoryId: selectedMainCategory,
         subCategoryId: selectedSubCategory,
         description: description.trim(),
-        location
+        location,
+        files,
+        phone: phone.trim(),
+        email: email.trim() || undefined,
+        language: documentLanguage
       });
       
       // Reset form
@@ -216,6 +237,9 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
       setSelectedMainCategory('');
       setSelectedSubCategory('');
       setDescription('');
+      setFiles([]);
+      setPhone('');
+      setEmail('');
     } catch (error) {
       console.error('Error submitting problem report:', error);
     } finally {
@@ -227,6 +251,20 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
     setSelectedMainCategory(categoryId);
     setSelectedSubCategory('');
     setCurrentStep('sub');
+  };
+
+  const handleSubCategorySelect = (subCategoryId: string) => {
+    setSelectedSubCategory(subCategoryId);
+    setCurrentStep('details');
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    setFiles(prev => [...prev, ...selectedFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleBackToMain = () => {
@@ -242,15 +280,28 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-civic-primary flex items-center gap-2">
             <AlertCircle size={24} />
-            Signaler un problème
+            {language === 'fr' && "Signaler un problème"}
+            {language === 'ar' && "الإبلاغ عن مشكلة"}
+            {language === 'darija' && "الإبلاغ علا مشكلة"}
+            {currentStep === 'details' && (
+              <Badge variant="secondary" className="ml-auto">
+                {language === 'fr' && "Étape 3/3"}
+                {language === 'ar' && "المرحلة ٣/٣"}
+                {language === 'darija' && "المرحلة ٣/٣"}
+              </Badge>
+            )}
             {currentStep === 'sub' && (
               <Badge variant="secondary" className="ml-auto">
-                Étape 2/2
+                {language === 'fr' && "Étape 2/3"}
+                {language === 'ar' && "المرحلة ٢/٣"}
+                {language === 'darija' && "المرحلة ٢/٣"}
               </Badge>
             )}
             {currentStep === 'main' && (
               <Badge variant="secondary" className="ml-auto">
-                Étape 1/2
+                {language === 'fr' && "Étape 1/3"}
+                {language === 'ar' && "المرحلة ١/٣"}
+                {language === 'darija' && "المرحلة ١/٣"}
               </Badge>
             )}
           </DialogTitle>
@@ -338,7 +389,7 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
                         ? 'border-civic-primary bg-civic-primary/5 shadow-civic'
                         : 'border-border hover:border-civic-primary/50'
                     }`}
-                    onClick={() => setSelectedSubCategory(subCategory.id)}
+                    onClick={() => handleSubCategorySelect(subCategory.id)}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`w-3 h-3 rounded-full mt-2 ${
@@ -357,25 +408,145 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
                 ))}
               </div>
 
-              {/* Description */}
-              {selectedSubCategory && (
+            </div>
+          )}
+
+          {/* Details Form */}
+          {currentStep === 'details' && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrentStep('sub')}
+                  className="p-2"
+                >
+                  <ArrowLeft size={16} />
+                </Button>
+                <div>
+                  <Label className="text-base font-medium">
+                    {language === 'fr' && "Détails du problème"}
+                    {language === 'ar' && "تفاصيل المشكلة"}
+                    {language === 'darija' && "تفاصيل المشكلة"}
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Description */}
                 <div className="space-y-3">
                   <Label htmlFor="description" className="text-base font-medium">
-                    Description du problème
+                    {language === 'fr' && "Description du problème"}
+                    {language === 'ar' && "وصف المشكلة"}
+                    {language === 'darija' && "وصف المشكلة"}
                   </Label>
                   <Textarea
                     id="description"
-                    placeholder="Décrivez le problème en détail... (ex: Les poubelles de ma rue ne sont pas ramassées depuis 4 jours)"
+                    placeholder={
+                      language === 'fr' ? "Décrivez le problème en détail... (ex: Les poubelles de ma rue ne sont pas ramassées depuis 4 jours)" :
+                      language === 'ar' ? "صفوا المشكلة بالتفصيل..." :
+                      "صفو المشكلة بالتفصيل..."
+                    }
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
                     className="resize-none"
                   />
-                  <p className="text-xs text-civic-neutral">
-                    Soyez aussi précis que possible pour nous aider à traiter votre demande efficacement.
-                  </p>
                 </div>
-              )}
+
+                {/* File Upload */}
+                <div className="space-y-3">
+                  <Label htmlFor="files" className="text-base font-medium">
+                    {language === 'fr' && "Photos ou documents (optionnel)"}
+                    {language === 'ar' && "صور أو وثائق (اختياري)"}
+                    {language === 'darija' && "صور ولا وثائق (اختياري)"}
+                  </Label>
+                  <Input
+                    id="files"
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="cursor-pointer"
+                  />
+                  {files.length > 0 && (
+                    <div className="space-y-2">
+                      {files.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-civic-surface-soft p-2 rounded">
+                          <span className="text-sm truncate">{file.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Contact Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-base font-medium">
+                      {language === 'fr' && "Numéro de téléphone *"}
+                      {language === 'ar' && "رقم الهاتف *"}
+                      {language === 'darija' && "رقم التليفون *"}
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+212 6XX XXX XXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-base font-medium">
+                      {language === 'fr' && "Email (optionnel)"}
+                      {language === 'ar' && "البريد الإلكتروني (اختياري)"}
+                      {language === 'darija' && "البريد الإلكتروني (اختياري)"}
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Document Language Selection */}
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">
+                    {language === 'fr' && "Langue du document officiel"}
+                    {language === 'ar' && "لغة الوثيقة الرسمية"}
+                    {language === 'darija' && "لغة الوثيقة الرسمية"}
+                  </Label>
+                  <Select value={documentLanguage} onValueChange={(value: 'arabic' | 'french') => setDocumentLanguage(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="french">
+                        {language === 'fr' && "Français"}
+                        {language === 'ar' && "الفرنسية"}
+                        {language === 'darija' && "الفرنسية"}
+                      </SelectItem>
+                      <SelectItem value="arabic">
+                        {language === 'fr' && "Arabe"}
+                        {language === 'ar' && "العربية"}
+                        {language === 'darija' && "العربية"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           )}
 
@@ -387,16 +558,24 @@ const ProblemReportModal: React.FC<ProblemReportModalProps> = ({
               className="flex-1"
               disabled={isSubmitting}
             >
-              Annuler
+              {language === 'fr' && "Annuler"}
+              {language === 'ar' && "إلغاء"}
+              {language === 'darija' && "إلغاء"}
             </Button>
-            {currentStep === 'sub' && selectedSubCategory && (
+            {currentStep === 'details' && (
               <Button
                 variant="civic"
                 onClick={handleSubmit}
-                disabled={!selectedMainCategory || !selectedSubCategory || !description.trim() || isSubmitting}
+                disabled={!selectedMainCategory || !selectedSubCategory || !description.trim() || !phone.trim() || isSubmitting}
                 className="flex-1"
               >
-                {isSubmitting ? 'Traitement...' : 'Trouver l\'autorité responsable'}
+                {isSubmitting ? (
+                  language === 'fr' ? 'Traitement...' :
+                  language === 'ar' ? 'جاري المعالجة...' : 'جاري المعالجة...'
+                ) : (
+                  language === 'fr' ? 'Trouver l\'autorité responsable' :
+                  language === 'ar' ? 'العثور على السلطة المسؤولة' : 'العثور على السلطة المسؤولة'
+                )}
               </Button>
             )}
           </div>
